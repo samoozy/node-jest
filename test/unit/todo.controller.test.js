@@ -4,10 +4,12 @@ const httpMocks = require('node-mocks-http')
 const newTodo = require('../mock-data/new-todo.json')
 const allTodos = require('../mock-data/all-todos.json')
 
-TodoModel.create = jest.fn()
-TodoModel.find = jest.fn()
-TodoModel.findById = jest.fn()
-TodoModel.findByIdAndUpdate = jest.fn()
+// TodoModel.create = jest.fn()
+// TodoModel.find = jest.fn()
+// TodoModel.findById = jest.fn()
+// TodoModel.findByIdAndUpdate = jest.fn()
+jest.mock('../../model/todo.model')
+
 
 let req, res, next
 const todoId = '60a1d2220839c9b0fd8a054e'
@@ -175,5 +177,50 @@ describe('TodoController.createTodo', () => {
     await TodoController.createTodo(req, res, next)
     
     expect(next).toBeCalledWith(errorMessage)
+  })
+
+})
+
+
+
+
+/**
+ * TodoController.deleteTodo
+ * DELETE request
+ */
+ describe('TodoController.deleteTodo', () => {
+  it('Should have a deleteTodo function', () => {
+    expect(typeof TodoController.deleteTodo).toBe('function')
+  })
+  it('Should call findByIdAndDelete', async () => {
+    req.params.todoId = todoId
+    await TodoController.deleteTodo(req, res , next)
+    expect(TodoModel.findByIdAndDelete).toBeCalledWith(todoId)
+  })
+
+  it('Should return 200 OK and deleted todomodel', async () => {
+    TodoModel.findByIdAndDelete.mockReturnValue(newTodo)
+    await TodoController.deleteTodo(req,res,next)
+    expect(res.statusCode).toBe(200)
+    expect(res._isEndCalled()).toBeTruthy()
+    expect(res._getJSONData()).toStrictEqual(newTodo)
+  })
+
+  it('Should return 404 when item doesnt exist', async () => {
+    // Mongodb returns null for items that dont exist
+    TodoModel.findByIdAndDelete.mockReturnValue(null)
+    
+    await TodoController.deleteTodo(req, res, next)
+    expect(res.statusCode).toBe(404)
+    expect(res._isEndCalled()).toBeTruthy()
+  })
+
+  it('Should do error handling', async () => {
+    const errorMessage = { message: 'Error finding' }
+    const rejectedPromise = Promise.reject(errorMessage)
+
+    TodoModel.findByIdAndDelete.mockReturnValue(rejectedPromise)
+    await TodoController.deleteTodo(req, res, next)
+    expect(next).toHaveBeenCalledWith(errorMessage)
   })
 })
