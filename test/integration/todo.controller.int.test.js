@@ -5,7 +5,8 @@ const mongoose = require('mongoose')
 const { request } = require('express')
 
 const endpointUrl = '/todos/'
-
+const testData = {title: 'Make integration test for PUT', done: true}
+const nonExistingTodoId = '60a1d23ba239bcb115d2b7a9'
 let firstTodo, newTodoId
 
 /**
@@ -38,7 +39,7 @@ describe(endpointUrl, () => {
     expect(response.body.done).toBe(firstTodo.done)
   })
   test('Get todo by id doesnt exist /todos/:todoId', async () => {
-    const response = await supertest(app).get(endpointUrl + '60a1d23ba239bcb115d2b7a9')
+    const response = await supertest(app).get(endpointUrl + nonExistingTodoId)
     expect(response.statusCode).toBe(404)
   })
 
@@ -73,7 +74,6 @@ describe(endpointUrl, () => {
    * PUT request
    */
   it('PUT /todos/:todoId', async () => {
-    const testData = {title: 'Make integration test for PUT', done: true}
     const response = await supertest(app)
       .put(endpointUrl + newTodoId)
       .send(testData)
@@ -81,6 +81,24 @@ describe(endpointUrl, () => {
     expect(response.statusCode).toBe(200)
     expect(response.body.title).toBe(testData.title)
     expect(response.body.done).toBe(testData.done)
+  })
+
+
+  /**
+   * DELETE request
+   */
+  test('HTTP delete', async () => {
+    const response = await supertest(app).delete(endpointUrl + newTodoId).send()
+
+    expect(response.statusCode).toBe(200)
+    expect(response.body.title).toBe(testData.title)
+    expect(response.body.done).toBe(testData.done)
+  })
+
+  test('HTTP DELETE 404', async () => {
+    const response = await supertest(app).delete(endpointUrl + nonExistingTodoId).send()
+    
+    expect(response.statusCode).toBe(404)
   })
 
 
