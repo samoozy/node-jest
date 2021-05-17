@@ -6,7 +6,16 @@ const { request } = require('express')
 
 const endpointUrl = '/todos/'
 
+let firstTodo, newTodoId
+
+/**
+ * Integration Test
+ */
 describe(endpointUrl, () => {
+
+  /**
+   * GET request
+   */
   test('Get /todos/', async () => {
     const response = await supertest(app).get(endpointUrl)
 
@@ -14,8 +23,30 @@ describe(endpointUrl, () => {
     expect(Array.isArray(response.body)).toBeTruthy()
     expect(response.body[0].title).toBeDefined()
     expect(response.body[0].done).toBeDefined()
+
+    firstTodo = response.body[0]
   })
 
+
+  /**
+   * GET by id
+   */
+  test('Get by id /todos/:todoId', async () => {
+    const response = await supertest(app).get(endpointUrl + firstTodo._id)
+    expect(response.statusCode).toBe(200)
+    expect(response.body.title).toBe(firstTodo.title)
+    expect(response.body.done).toBe(firstTodo.done)
+  })
+  test('Get todo by id doesnt exist /todos/:todoId', async () => {
+    const response = await supertest(app).get(endpointUrl + '60a1d23ba239bcb115d2b7a9')
+    expect(response.statusCode).toBe(404)
+  })
+
+
+
+  /**
+   * POST request
+   */
   it('Should send post request to /todos', async () => {
 
     const response = await supertest(app)
@@ -25,6 +56,8 @@ describe(endpointUrl, () => {
     expect(response.statusCode).toBe(201)
     expect(response.body.title).toBe(newTodo.title)
     expect(response.body.done).toBe(newTodo.done)
+
+    newTodoId = response.body._id
   })
   it('Should return error 500 malformed data with POST /todos', async () => {
 
@@ -36,6 +69,23 @@ describe(endpointUrl, () => {
     expect(response.body).toStrictEqual({message:'Todo validation failed: done: Path `done` is required.'})
   })
 
+  /**
+   * PUT request
+   */
+  it('PUT /todos/:todoId', async () => {
+    const testData = {title: 'Make integration test for PUT', done: true}
+    const response = await supertest(app)
+      .put(endpointUrl + newTodoId)
+      .send(testData)
+    
+    expect(response.statusCode).toBe(200)
+    expect(response.body.title).toBe(testData.title)
+    expect(response.body.done).toBe(testData.done)
+  })
+
+
+
+  // test teardown
   afterAll(() => {
     mongoose.connection.close()
   })

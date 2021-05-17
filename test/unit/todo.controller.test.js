@@ -6,8 +6,13 @@ const allTodos = require('../mock-data/all-todos.json')
 
 TodoModel.create = jest.fn()
 TodoModel.find = jest.fn()
+TodoModel.findById = jest.fn()
+TodoModel.findByIdAndUpdate = jest.fn()
 
 let req, res, next
+const todoId = '60a1d2220839c9b0fd8a054e'
+
+
 beforeEach(() => {
   req = httpMocks.createRequest()
   res = httpMocks.createResponse()
@@ -15,6 +20,96 @@ beforeEach(() => {
 })
 
 
+/**
+ * TodoController.updateTodo
+ * PUT request
+ */
+describe('TodoController.updateTodo', () => {
+  it('Should have an updateTodo function', () => {
+    expect(typeof TodoController.updateTodo).toBe('function')
+  })
+  it('Should update with TodoModel.findByIdAndUpdate', async () => {
+    req.params.todoId = todoId
+    req.body = newTodo
+    await TodoController.updateTodo(req,res,next)
+
+    expect(TodoModel.findByIdAndUpdate).toHaveBeenCalledWith(todoId, newTodo, {
+      new: true,
+      useFindAndModify: false
+    })
+  })
+  it('Should return a response with json data and http code 200', async () => {
+    req.params.todoId = todoId
+    req.body = newTodo
+    TodoModel.findByIdAndUpdate.mockReturnValue(newTodo)
+    await TodoController.updateTodo(req, res, next)
+    expect(res._isEndCalled()).toBeTruthy()
+    expect(res.statusCode).toBe(200)
+    expect(res._getJSONData()).toStrictEqual(newTodo)
+  })
+  it('Should return 404 when item doesnt exist', async () => {
+    // Mongodb returns null for items that dont exist
+    TodoModel.findByIdAndUpdate.mockReturnValue(null)
+    await TodoController.updateTodo(req, res, next)
+    expect(res.statusCode).toBe(404)
+    expect(res._isEndCalled()).toBeTruthy()
+  })
+  it('Should do error handling', async () => {
+    const errorMessage = { message: 'Error finding and updating' }
+    const rejectedPromise = Promise.reject(errorMessage)
+
+    TodoModel.findByIdAndUpdate.mockReturnValue(rejectedPromise)
+    await TodoController.updateTodo(req, res, next)
+    expect(next).toHaveBeenCalledWith(errorMessage)
+  })
+
+})
+
+
+
+/**
+ * TodoController.getTodoById
+ * GET request
+ */
+describe('TodoController.getTodoById', () => {
+  it('Should have a getTodoById function', () => {
+    expect(typeof TodoController.getTodoById).toBe('function')
+  })
+  it('Should call TodoModel.findById with route parameters', async () => {
+    req.params.todoId = todoId
+    await TodoController.getTodoById(req, res , next)
+    expect(TodoModel.findById).toBeCalledWith(todoId)
+  })
+  it('Should return json body and response code 200', async () => {
+    TodoModel.findById.mockReturnValue(newTodo)
+    await TodoController.getTodoById(req,res,next)
+    expect(res.statusCode).toBe(200)
+    expect(res._isEndCalled()).toBeTruthy()
+    expect(res._getJSONData()).toStrictEqual(newTodo)
+  })
+  it('Should return 404 when item doesnt exist', async () => {
+    // Mongodb returns null for items that dont exist
+    TodoModel.findById.mockReturnValue(null)
+    await TodoController.getTodoById(req, res, next)
+    expect(res.statusCode).toBe(404)
+    expect(res._isEndCalled()).toBeTruthy()
+  })
+  it('Should do error handling', async () => {
+    const errorMessage = { message: 'Error finding' }
+    const rejectedPromise = Promise.reject(errorMessage)
+    TodoModel.findById.mockReturnValue(rejectedPromise)
+    await TodoController.getTodoById(req, res, next)
+    expect(next).toHaveBeenCalledWith(errorMessage)
+  })
+})
+
+
+
+
+/**
+ * TodoController.getTodos
+ * GET request
+ */
 describe('TodoController.getTodos', () => {
   it('Should have a getTodos function', () => {
     expect(typeof TodoController.getTodos).toBe('function')
@@ -43,6 +138,13 @@ describe('TodoController.getTodos', () => {
 
 
 
+
+
+
+/**
+ * TodoController.createTodo
+ * POST request
+ */
 describe('TodoController.createTodo', () => {
   beforeEach(() => {
     req.body = newTodo
